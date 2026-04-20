@@ -143,11 +143,6 @@
         .form-item {
             margin-bottom: 14px;
         }
-        .form-item label {
-            display: block;
-            margin-bottom: 6px;
-            color: #333;
-        }
         .form-item input,
         .form-item textarea {
             width: 100%;
@@ -182,11 +177,6 @@
             color: #333;
             border: none;
         }
-        .desc {
-            font-size: 13px;
-            color: #999;
-            margin-top: 4px;
-        }
         .q-list {
             margin-top: 16px;
             max-height: 200px;
@@ -200,6 +190,15 @@
             font-size: 14px;
             display: flex;
             justify-content: space-between;
+            align-items: center;
+        }
+        .q-item span {
+            cursor: pointer;
+            color: #1677ff;
+            margin-left: 8px;
+        }
+        .admin-area {
+            display: none;
         }
     </style>
 </head>
@@ -226,35 +225,45 @@
 
 <div class="modal-mask" id="modal">
     <div class="modal">
-        <h3>自定义题目库</h3>
+        <h3>设置</h3>
         <div class="form-item">
-            <label>正确答案</label>
-            <input type="text" id="customAnswer" placeholder="例如：春天">
+            <input type="password" id="adminPwd" placeholder="">
         </div>
-        <div class="form-item">
-            <label>相关词语（逗号/空格分隔）</label>
-            <textarea id="customRelated" placeholder="例如：花开,温暖,下雨,微风"></textarea>
-            <div class="desc">逗号、空格、顿号隔开均可</div>
-        </div>
-        <div class="btns">
-            <button class="btn-add" onclick="addQuestion()">添加题目</button>
-            <button class="btn-close" onclick="closeModal()">关闭</button>
-        </div>
-        <div style="margin-top:20px;">
-            <label>已添加题目（点击删除）</label>
-            <div class="q-list" id="questionListEl"></div>
+        <button onclick="checkPwd()" style="width:100%;padding:10px;margin-bottom:16px;">确定</button>
+
+        <div id="adminArea" class="admin-area">
+            <div class="form-item">
+                <input type="text" id="customAnswer" placeholder="正确答案">
+            </div>
+            <div class="form-item">
+                <textarea id="customRelated" placeholder="相关词，用逗号/空格分隔"></textarea>
+            </div>
+            <div class="btns">
+                <button class="btn-add" onclick="addOrUpdateQuestion()">保存题目</button>
+                <button class="btn-close" onclick="closeModal()">关闭</button>
+            </div>
+            <div style="margin-top:20px;">
+                <div class="q-list" id="questionListEl"></div>
+            </div>
         </div>
     </div>
 </div>
 
 <script>
 const STORAGE_KEY = "guess_word_questions";
+let editIndex = -1;
+
+function checkPwd() {
+    const pwd = document.getElementById("adminPwd").value.trim();
+    if (pwd === "666") {
+        document.getElementById("adminArea").style.display = "block";
+        renderQuestionList();
+    }
+}
 
 function loadQuestions() {
     const data = localStorage.getItem(STORAGE_KEY);
-    return data ? JSON.parse(data) : [
-        { answer: "青海", related: ["海","大海","海洋","湖泊","沙滩","河流","南海"] }
-    ];
+    return data ? JSON.parse(data) : [{ answer: "青海", related: ["海","大海","海洋","湖泊","沙滩","河流","南海"] }];
 }
 function saveQuestions(qs) {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(qs));
@@ -265,8 +274,7 @@ let current = null;
 let guessHistory = [];
 
 function randomQuestion() {
-    if (questions.length === 0) return null;
-    return questions[Math.floor(Math.random() * questions.length)];
+    return questions.length ? questions[Math.floor(Math.random() * questions.length)] : null;
 }
 
 function renderQuestionList() {
@@ -275,22 +283,41 @@ function renderQuestionList() {
     questions.forEach((q, i) => {
         const div = document.createElement("div");
         div.className = "q-item";
-        div.innerHTML = `${q.answer} <span onclick="delQuestion(${i})" style="color:#1677ff;cursor:pointer">删除</span>`;
+        div.innerHTML = `
+            <span>${q.answer}</span>
+            <div>
+                <span onclick="editQuestion(${i})">修改</span>
+                <span onclick="delQuestion(${i})">删除</span>
+            </div>
+        `;
         el.appendChild(div);
     });
 }
 
-function addQuestion() {
+function editQuestion(index) {
+    editIndex = index;
+    const q = questions[index];
+    document.getElementById("customAnswer").value = q.answer;
+    document.getElementById("customRelated").value = q.related.join("，");
+}
+
+function addOrUpdateQuestion() {
     const ans = document.getElementById("customAnswer").value.trim();
-    const rel = document.getElementById("customRelated").value.trim();
-    if (!ans || !rel) { alert("请填写完整"); return; }
-    const arr = rel.split(/[，, 、\s]+/).filter(x => x.trim());
-    questions.push({ answer: ans, related: arr });
+    const relText = document.getElementById("customRelated").value.trim();
+    if (!ans || !relText) { alert("请填写完整"); return; }
+    const arr = relText.split(/[，,、\s]+/).filter(x => x.trim());
+    
+    if (editIndex >= 0) {
+        questions[editIndex] = { answer: ans, related: arr };
+        editIndex = -1;
+    } else {
+        questions.push({ answer: ans, related: arr });
+    }
+    
     saveQuestions(questions);
     renderQuestionList();
     document.getElementById("customAnswer").value = "";
     document.getElementById("customRelated").value = "";
-    alert("添加成功");
 }
 
 function delQuestion(index) {
@@ -301,7 +328,9 @@ function delQuestion(index) {
 }
 
 function openModal() {
-    renderQuestionList();
+    editIndex = -1;
+    document.getElementById("adminArea").style.display = "none";
+    document.getElementById("adminPwd").value = "";
     document.getElementById("modal").style.display = "flex";
 }
 function closeModal() {
