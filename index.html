@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>猜词游戏</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: "Microsoft YaHei", sans-serif;
+        }
+        body {
+            background: #f5f7fa;
+            padding: 20px;
+            max-width: 500px;
+            margin: 0 auto;
+        }
+        .game-box {
+            background: #fff;
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+            position: relative;
+        }
+        .title {
+            text-align: center;
+            font-size: 22px;
+            margin-bottom: 20px;
+            color: #333;
+        }
+        .setting-btn {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: #1677ff;
+            color: #fff;
+            border: none;
+            font-size: 18px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .input-row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+        #guessInput {
+            flex: 1;
+            padding: 12px 14px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+        .submit-btn {
+            padding: 12px 20px;
+            background: #1677ff;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .total-count {
+            font-size: 14px;
+            color: #1677ff;
+            font-weight: bold;
+        }
+        .tip {
+            text-align: right;
+            color: #888;
+            font-size: 14px;
+        }
+        .list {
+            background: #f9f9f9;
+            border-radius: 10px;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+        .item {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 16px;
+            border-bottom: 1px solid #eee;
+        }
+        .item:last-child { border-bottom: none; }
+        .item.correct { background: #fff5d0; font-weight: bold; }
+        .word { color: #333; }
+        .rate { color: #666; }
+        .result {
+            margin-top: 16px;
+            text-align: center;
+            font-size: 18px;
+            color: #00b42a;
+            font-weight: bold;
+        }
+        .restart {
+            margin-top: 16px;
+            width: 100%;
+            padding: 12px;
+            background: #00b42a;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        .modal-mask {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 999;
+        }
+        .modal {
+            background: #fff;
+            width: 90%;
+            max-width: 460px;
+            border-radius: 12px;
+            padding: 24px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        .modal h3 {
+            margin-bottom: 16px;
+            font-size: 18px;
+        }
+        .form-item {
+            margin-bottom: 14px;
+        }
+        .form-item label {
+            display: block;
+            margin-bottom: 6px;
+            color: #333;
+        }
+        .form-item input,
+        .form-item textarea {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 15px;
+        }
+        .form-item textarea {
+            min-height: 80px;
+            resize: vertical;
+        }
+        .btns {
+            display: flex;
+            gap: 12px;
+            margin-top: 20px;
+        }
+        .btns button {
+            flex: 1;
+            padding: 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 15px;
+        }
+        .btn-add {
+            background: #1677ff;
+            color: #fff;
+            border: none;
+        }
+        .btn-close {
+            background: #f0f0f0;
+            color: #333;
+            border: none;
+        }
+        .desc {
+            font-size: 13px;
+            color: #999;
+            margin-top: 4px;
+        }
+        .q-list {
+            margin-top: 16px;
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #eee;
+            border-radius: 6px;
+        }
+        .q-item {
+            padding: 8px 12px;
+            border-bottom: 1px solid #f0f0f0;
+            font-size: 14px;
+            display: flex;
+            justify-content: space-between;
+        }
+    </style>
+</head>
+<body>
+
+<div class="game-box">
+    <button class="setting-btn" onclick="openModal()">⚙️</button>
+    <h2 class="title">猜词游戏</h2>
+
+    <div class="input-row">
+        <input type="text" id="guessInput" placeholder="输入猜测的词语" autocomplete="off">
+        <button class="submit-btn" onclick="doGuess()">猜测</button>
+    </div>
+
+    <div class="info-row">
+        <div class="total-count" id="totalCount">本轮已猜：0 次</div>
+        <div class="tip">概率越高越接近答案</div>
+    </div>
+
+    <div class="list" id="list"></div>
+    <div class="result" id="result"></div>
+    <button class="restart" onclick="nextRandom()">随机下一题</button>
+</div>
+
+<div class="modal-mask" id="modal">
+    <div class="modal">
+        <h3>自定义题目库</h3>
+        <div class="form-item">
+            <label>正确答案</label>
+            <input type="text" id="customAnswer" placeholder="例如：春天">
+        </div>
+        <div class="form-item">
+            <label>相关词语（逗号/空格分隔）</label>
+            <textarea id="customRelated" placeholder="例如：花开,温暖,下雨,微风"></textarea>
+            <div class="desc">逗号、空格、顿号隔开均可</div>
+        </div>
+        <div class="btns">
+            <button class="btn-add" onclick="addQuestion()">添加题目</button>
+            <button class="btn-close" onclick="closeModal()">关闭</button>
+        </div>
+        <div style="margin-top:20px;">
+            <label>已添加题目（点击删除）</label>
+            <div class="q-list" id="questionListEl"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+const STORAGE_KEY = "guess_word_questions";
+
+function loadQuestions() {
+    const data = localStorage.getItem(STORAGE_KEY);
+    return data ? JSON.parse(data) : [
+        { answer: "青海", related: ["海","大海","海洋","湖泊","沙滩","河流","南海"] }
+    ];
+}
+function saveQuestions(qs) {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(qs));
+}
+
+let questions = loadQuestions();
+let current = null;
+let guessHistory = [];
+
+function randomQuestion() {
+    if (questions.length === 0) return null;
+    return questions[Math.floor(Math.random() * questions.length)];
+}
+
+function renderQuestionList() {
+    const el = document.getElementById("questionListEl");
+    el.innerHTML = "";
+    questions.forEach((q, i) => {
+        const div = document.createElement("div");
+        div.className = "q-item";
+        div.innerHTML = `${q.answer} <span onclick="delQuestion(${i})" style="color:#1677ff;cursor:pointer">删除</span>`;
+        el.appendChild(div);
+    });
+}
+
+function addQuestion() {
+    const ans = document.getElementById("customAnswer").value.trim();
+    const rel = document.getElementById("customRelated").value.trim();
+    if (!ans || !rel) { alert("请填写完整"); return; }
+    const arr = rel.split(/[，, 、\s]+/).filter(x => x.trim());
+    questions.push({ answer: ans, related: arr });
+    saveQuestions(questions);
+    renderQuestionList();
+    document.getElementById("customAnswer").value = "";
+    document.getElementById("customRelated").value = "";
+    alert("添加成功");
+}
+
+function delQuestion(index) {
+    if (!confirm("确定删除？")) return;
+    questions.splice(index, 1);
+    saveQuestions(questions);
+    renderQuestionList();
+}
+
+function openModal() {
+    renderQuestionList();
+    document.getElementById("modal").style.display = "flex";
+}
+function closeModal() {
+    document.getElementById("modal").style.display = "none";
+}
+
+function sim(a, b) {
+    let s = 0;
+    const sa = new Set(a.split(""));
+    const sb = new Set(b.split(""));
+    sa.forEach(c => sb.has(c) && s++);
+    return (s / Math.max(sa.size, sb.size)) * 100;
+}
+
+function renderList() {
+    if (!current) return;
+    const all = [...guessHistory, ...current.related];
+    const list = all.map(w => {
+        const s = sim(w, current.answer);
+        const rate = Math.min(100, s + Math.random() * 18);
+        return { w, rate };
+    }).sort((a, b) => b.rate - a.rate);
+
+    const dom = document.getElementById("list");
+    dom.innerHTML = "";
+    list.forEach(({ w, rate }) => {
+        const div = document.createElement("div");
+        div.className = "item" + (w === current.answer ? " correct" : "");
+        div.innerHTML = `<span class="word">${w}</span><span class="rate">${rate.toFixed(1)}%</span>`;
+        dom.appendChild(div);
+    });
+}
+
+function updateTotalCount() {
+    document.getElementById("totalCount").textContent = `本轮已猜：${guessHistory.length} 次`;
+}
+
+function doGuess() {
+    if (!current) { alert("请先添加题目"); return; }
+    const ipt = document.getElementById("guessInput");
+    const val = ipt.value.trim();
+    if (!val) return;
+    if (guessHistory.includes(val)) {
+        alert("已猜过");
+        ipt.value = "";
+        return;
+    }
+    guessHistory.push(val);
+    updateTotalCount();
+    renderList();
+    if (val === current.answer) {
+        document.getElementById("result").innerText = `🎉 恭喜猜对！答案：${val}`;
+    } else {
+        document.getElementById("result").innerText = "";
+    }
+    ipt.value = "";
+}
+
+function nextRandom() {
+    current = randomQuestion();
+    guessHistory = [];
+    updateTotalCount();
+    document.getElementById("list").innerHTML = "";
+    document.getElementById("result").innerText = "";
+    document.getElementById("guessInput").value = "";
+}
+
+document.getElementById("guessInput").addEventListener("keydown", e => {
+    if (e.key === "Enter") doGuess();
+});
+
+nextRandom();
+</script>
+</body>
+</html>
