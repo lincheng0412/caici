@@ -220,6 +220,7 @@
 
     <div class="list" id="list"></div>
     <div class="result" id="result"></div>
+
     <button class="restart" onclick="nextRandom()">随机下一题</button>
 </div>
 
@@ -304,7 +305,7 @@ function editQuestion(index) {
 function addOrUpdateQuestion() {
     const ans = document.getElementById("customAnswer").value.trim();
     const relText = document.getElementById("customRelated").value.trim();
-    if (!ans || !relText) { alert("请填写完整"); return; }
+    if (!ans || !relText) { return; }
     const arr = relText.split(/[，,、\s]+/).filter(x => x.trim());
     
     if (editIndex >= 0) {
@@ -369,15 +370,18 @@ function updateTotalCount() {
 }
 
 function doGuess() {
-    if (!current) { alert("请先添加题目"); return; }
+    if (!current) return;
     const ipt = document.getElementById("guessInput");
     const val = ipt.value.trim();
     if (!val) return;
+
     if (guessHistory.includes(val)) {
-        alert("已猜过");
+        document.getElementById("totalCount").textContent = `本轮已猜：${guessHistory.length} 次（已猜过）`;
         ipt.value = "";
         return;
     }
+
+    document.getElementById("totalCount").textContent = `本轮已猜：${guessHistory.length} 次`;
     guessHistory.push(val);
     updateTotalCount();
     renderList();
@@ -393,8 +397,8 @@ function nextRandom() {
     current = randomQuestion();
     guessHistory = [];
     updateTotalCount();
-    document.getElementById("list").innerHTML = "";
     document.getElementById("result").innerText = "";
+    document.getElementById("list").innerHTML = "";
     document.getElementById("guessInput").value = "";
 }
 
